@@ -14,6 +14,7 @@ public class Player : MonoBehaviour
     }
 
 
+    //Set and Get
     public void SetPlayerInfo(PlayerInfo playerInfo)
     {
         this.playerInfo = playerInfo;
@@ -25,13 +26,10 @@ public class Player : MonoBehaviour
     }
 
 
-    public float SetPoint(GridPoint destination)
+    public void SetPoint(GridPoint destination)
     {
-        //Animation Time
-        float time = 0f;
         currentPosition = destination;
         this.transform.position = currentPosition.transform.position;
-        return time;
     }
     public GridPoint GetPoint()
     {
