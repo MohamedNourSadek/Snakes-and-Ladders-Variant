@@ -2,11 +2,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum PointType { Default, Pitfall, Skip}
-public struct GridPoint
+public enum PointType { Default, Pitfall, ShortCut}
+
+[System.Serializable]
+public class GridPoint : MonoBehaviour
 {
-    public Vector2 point;
-    public PointType pointType;
-    public Vector2 pointDestination;
+    [SerializeField] public Vector2 point;
+    [SerializeField] public PointType pointType;
+    [SerializeField] public Vector2 pointDestination;
+
+    public void Initialize(Vector2 point, PointType pointType, Vector2 pointDestination)
+    {
+        this.point = point;
+        this.pointType = pointType; 
+        this.pointDestination = pointDestination;
+
+        name = "(" + point.x + "," + point.y + ")";
+    }
 }
 
