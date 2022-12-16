@@ -8,8 +8,10 @@ using UnityEngine.SceneManagement;
 
 public class UIController : MonoBehaviour
 {
+    [SerializeField] GameObject canvas;
     [SerializeField] GameObject gamePanel;
     [SerializeField] GameObject endGamePanel;
+    [SerializeField] GameObject logMessageAsset;
 
     [Header("References")]
     [SerializeField] TextMeshProUGUI playerName;
@@ -26,9 +28,12 @@ public class UIController : MonoBehaviour
     [SerializeField] Button greenArrowsButton;
 
     public static UIController instance;
-
+    public bool showingMessage = false;
     public bool isGreenArrowsOn;
+    public Queue<MessageData> gameMessages = new Queue<MessageData>();
 
+
+    //Initailization
     private void Awake()
     {
         instance = this;
@@ -41,7 +46,16 @@ public class UIController : MonoBehaviour
 
         greenArrowsButton.onClick.AddListener(OnGreenActionPress);
     }
+    private void Update()
+    {
+        if(showingMessage == false && gameMessages.Count > 0)
+        {
+            showingMessage = true;
+            SpawnMessage(gameMessages.Dequeue());
+        }
+    }
 
+    //UI functionalities
     public void EndGameCondition(PlayerInfo winnerName)
     {
         this.winnerName.text = winnerName.playerName + " has won the game";
@@ -49,22 +63,6 @@ public class UIController : MonoBehaviour
 
         endGamePanel.SetActive(true);
         gamePanel.SetActive(false);
-    }
-    public void AddOnRollEvent(UnityAction action)
-    {
-        rollButton.onClick.AddListener(action);
-    }
-    public void AddOnPlayEvent(UnityAction action)
-    {
-        playButton.onClick.AddListener(action);
-    }
-    public void AddOnSkipEvent(UnityAction action)
-    {
-        skipButton.onClick.AddListener(action);
-    }
-    public void AddOnGreenEvent(UnityAction action)
-    {
-        greenArrowsButton.onClick.AddListener(action);
     }
     public void UpdatePlayerName(string name, Color playerColor)
     {
@@ -102,10 +100,30 @@ public class UIController : MonoBehaviour
     {
         skipButton.interactable = state;
     }
+    public void LogGameMessage(string message)
+    {
+        LogGameMessage(message, Color.grey, 1f);
+    }
+    public void LogGameMessage(string message, float time)
+    {
+        LogGameMessage(message, Color.gray, time);
+    }
+    public void LogGameMessage(string message, Color color, float time)
+    {
+        gameMessages.Enqueue(new MessageData { text = message, color = color, time = time });
+    }
+
+    public void SpawnMessage(MessageData message)
+    {
+        TextMeshProUGUI gameMessage = Instantiate(logMessageAsset, canvas.transform).GetComponent<TextMeshProUGUI>();
+        gameMessage.text = message.text;
+        gameMessage.color = message.color;
+
+        gameMessage.GetComponent<GameMessage>().Initialize(message.time);
+    }
 
 
-
-    //private events
+    //Events Handler events
     void OnGreenActionPress()
     {
         SoundManager.instance.PlayEffect(Effects.ButtonPress);
@@ -122,4 +140,26 @@ public class UIController : MonoBehaviour
         SoundManager.instance.PlayEffect(Effects.ButtonPress);
         SceneManager.LoadScene(0);
     }
+
+
+
+    //Events Subscribtion
+    public void AddOnRollEvent(UnityAction action)
+    {
+        rollButton.onClick.AddListener(action);
+    }
+    public void AddOnPlayEvent(UnityAction action)
+    {
+        playButton.onClick.AddListener(action);
+    }
+    public void AddOnSkipEvent(UnityAction action)
+    {
+        skipButton.onClick.AddListener(action);
+    }
+    public void AddOnGreenEvent(UnityAction action)
+    {
+        greenArrowsButton.onClick.AddListener(action);
+    }
 }
+
+

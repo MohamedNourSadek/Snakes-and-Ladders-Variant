@@ -5,6 +5,7 @@ using UnityEngine;
 
 
 public enum Effects { ButtonPress, Roll, Error, Fail, Successs}
+
 public class SoundManager : MonoBehaviour
 {
     [SerializeField] AudioClip globalMusic;
@@ -41,7 +42,7 @@ public class SoundManager : MonoBehaviour
     }
     public void PlayEffect(Effects effectName)
     {
-        AudioData effect = AudioData.FindClip(effects, effectName);
+        AudioData effect = effects.Find(sound => sound.name == effectName);
         AudioSource.PlayClipAtPoint(effect.clip, Camera.main.transform.position + (Camera.main.transform.forward * 1), effect.defaultVolume);
     }
 }

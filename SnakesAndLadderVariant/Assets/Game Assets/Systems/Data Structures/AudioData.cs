@@ -10,8 +10,4 @@ public class AudioData
     [SerializeField] public float defaultVolume;
 
 
-    public static AudioData FindClip(List<AudioData> sounds, Effects name)
-    {
-        return sounds.Find(sound => sound.name == name);
-    }
 }

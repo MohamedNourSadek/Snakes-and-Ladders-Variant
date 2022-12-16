@@ -41,8 +41,9 @@ public class GameManager : MonoBehaviour
         UIController.instance.AddOnSkipEvent(OnSkipPress);
         UIController.instance.AddOnGreenEvent(SetGreenArrowsState);
 
-        GameData gameData = (GlobalData.gameData.PlayersInfo.Count >= 2) ? GlobalData.gameData : CreateTestGameData();
+        GameData gameData = GlobalData.gameData;
 
+        //Start Map, Spawn Players
         CreateGridMap();
         SpawnArrows();
         SpawnPlayers(gameData.PlayersInfo);
@@ -52,16 +53,18 @@ public class GameManager : MonoBehaviour
         currentPlayer = 0;
         UIController.instance.SetRollAbility(true);
     }
-    GameData CreateTestGameData()
-    {
-        GameData gameData = new GameData();
-        PlayerInfo player1Info = new PlayerInfo("Mohamed", UnityEngine.Color.red);
-        PlayerInfo player2Info = new PlayerInfo("Omar", UnityEngine.Color.blue);
-        gameData.PlayersInfo.Add(player1Info);
-        gameData.PlayersInfo.Add(player2Info);
 
-        return gameData;
+
+    public Vector2 test;
+    private void Update()
+    {
+        if(Input.GetKeyDown(KeyCode.X))
+        {
+            Debug.Log(GetDistanceToEndLine(test));
+        }
     }
+
+
     void CreateGridMap()
     {
         //Create All default first
@@ -77,14 +80,13 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        //Pitfalls
-        //I will generate one in the upper part that is big, and one small in the middle half.
-        GenerateRandomBoost(new Vector2(5,8), new Vector2(1, 2), PointType.Pitfall);
-        GenerateRandomBoost(new Vector2(2,5), new Vector2(3, 4), PointType.Pitfall);
 
         //Pitfalls
-        //I will generate one in the upper part that is big, and one small in the middle half.
-        GenerateRandomBoost(new Vector2(4, 7), new Vector2(5, 6), PointType.ShortCut);
+        GenerateRandomBoost(new Vector2(2, 5), new Vector2(1, 2), PointType.Pitfall);
+        GenerateRandomBoost(new Vector2(5,8), new Vector2(5, 6), PointType.Pitfall);
+        
+        //Shortucts
+        GenerateRandomBoost(new Vector2(4, 7), new Vector2(3, 4), PointType.ShortCut);
         GenerateRandomBoost(new Vector2(1, 4), new Vector2(7, 8), PointType.ShortCut);
     }
     void GenerateRandomBoost(Vector2 Yrange, Vector2 Xrange, PointType pointType)
@@ -98,15 +100,21 @@ public class GameManager : MonoBehaviour
         else
             endPoint = Random.Range(0, yPoint);
 
-        //reject point if its already a special move point
-        bool isStartVaild = PointToGridPoint(new Vector2(xPoint + 1, yPoint +1)).pointType == PointType.Default;
-        bool isEndValid = PointToGridPoint(new Vector2(xPoint +1, endPoint + 1)).pointType == PointType.Default;
-       
-        if (!isStartVaild || !isEndValid)
+
+        Vector2 start = new Vector2(xPoint + 1, yPoint + 1);
+        Vector2 end = new Vector2(xPoint + 1, endPoint + 1);
+
+        //reject point if its already a special move point or the end game point
+        bool isStartVaild = PointToGridPoint(start).pointType == PointType.Default;
+        bool isEndValid = PointToGridPoint(end).pointType == PointType.Default;
+        
+        if ((!isStartVaild || !isEndValid) || (start == endGamePoint))
         {
             GenerateRandomBoost(Yrange, Xrange, pointType);
             return;
         }
+
+        Debug.Log(new Vector2(xPoint + 1, yPoint + 1));
 
         //contine if it's valid
         map[xPoint, yPoint].pointType = pointType;
@@ -153,27 +161,7 @@ public class GameManager : MonoBehaviour
 
         SetGreenArrowsState();
     }
-    void SetGreenArrowsState()
-    {
-        for (int y = 1; y <= 8; y++)
-        {
-            for (int x = 1; x <= 8; x++)
-            {
-                if (new Vector2(x, y) != endGamePoint)
-                {
-                    GridPoint point = map[x - 1, y - 1];
 
-                    if (point.pointType == PointType.Default)
-                    {
-                        foreach (MeshRenderer mesh in point.myArrow.GetComponentsInChildren<MeshRenderer>())
-                        {
-                            mesh.enabled = UIController.instance.isGreenArrowsOn;
-                        }
-                    }
-                }
-            }
-        }
-    }
 
 
     //Game Loop
@@ -188,7 +176,8 @@ public class GameManager : MonoBehaviour
         else
             currentPlayer ++;
 
-
+        UIController.instance.LogGameMessage(players[currentPlayer].GetPlayerInfo().playerName + "'s turn",
+                                             players[currentPlayer].GetPlayerInfo().playerColor,.5f);
         UpdatePlayerUI();
     }
     void UpdatePlayerUI()
@@ -201,9 +190,136 @@ public class GameManager : MonoBehaviour
         UIController.instance.SetSkipAbility(false);
         UIController.instance.SetRollAbility(true);
     }
+    IEnumerator Rolling()
+    {
+        float time = rollingTime;
 
 
-    //Events
+        while (time > 0)
+        {
+            //some test players who have some abilities
+            if (players[currentPlayer].GetPlayerInfo().playerName == "SixSixTest")
+            {
+                currentRollNumber = 6;
+            }
+            else if (players[currentPlayer].GetPlayerInfo().playerName == "Faster")
+            {
+                currentRollNumber = 8;
+            }
+            else
+            {
+                currentRollNumber = Random.Range(1, 7);
+            }
+
+
+            UIController.instance.UpdateRoll(currentRollNumber.ToString());
+            UIController.instance.UpdateDie(currentRollNumber);
+
+            time -= 0.1f;
+            yield return new WaitForSeconds(.1f);
+        }
+
+        //6-6 in a row
+        if (players[currentPlayer].GetLastRoll() == 6 && currentRollNumber == 6)
+        {
+            UIController.instance.SetSkipAbility(false);
+            UIController.instance.SetPlayAbility(false);
+            UIController.instance.LogGameMessage("6-6 in a row " + players[currentPlayer].GetPlayerInfo().playerName + "'s turn skipped" , 2f);
+
+            SetNextPlayer();
+        }
+        //is going outside the map
+        else if (currentRollNumber > GetDistanceToEndLine(players[currentPlayer].GetPoint().point)) 
+        {
+            UIController.instance.SetSkipAbility(false);
+            UIController.instance.SetPlayAbility(false);
+            UIController.instance.LogGameMessage(GetDistanceToEndLine(players[currentPlayer].GetPoint().point) + " is needed!", 2f);
+
+            SetNextPlayer();
+        }
+        else
+        {
+            if (players[currentPlayer].CanSkip())
+            {
+                UIController.instance.SetSkipAbility(true);
+                UIController.instance.SetPlayAbility(true);
+            }
+            else
+            {
+                if (players[currentPlayer].GetReserveAmount() > 0)
+                {
+                    UIController.instance.UpdateRoll(currentRollNumber.ToString() + " + " + players[currentPlayer].GetReserveAmount().ToString());
+
+                    currentRollNumber += players[currentPlayer].GetReserveAmount();
+                    players[currentPlayer].SetReserve(0);
+
+                    UIController.instance.SetPlayAbility(true);
+                }
+                else
+                {
+                    UIController.instance.SetPlayAbility(true);
+                }
+            }
+        }
+
+    }
+    IEnumerator ExcuteMove()
+    {
+        //Map Over flow 
+
+        var animationKeys = ComputePlayerPath(players[currentPlayer].GetPoint().point, currentRollNumber);
+
+        float animationTimePerKey = 1f / playerSpeed;
+
+        for (int i = 0; i < animationKeys.Count; i++)
+        {
+            float ramainingPerKey = animationTimePerKey;
+            float numberOfIncrements = 25f;
+
+            float deltaTime = animationTimePerKey / numberOfIncrements;
+            Vector3 deltaSpace = (animationKeys[i].gameObject.transform.position - players[currentPlayer].transform.position) / numberOfIncrements;
+
+            if ((i == animationKeys.Count - 2) && boostInPath)
+            {
+
+                if (animationKeys[i].pointType == PointType.Pitfall)
+                {
+                    UIController.instance.LogGameMessage("Pitfall!");
+                    SoundManager.instance.PlayEffect(Effects.Fail);
+                }
+                else if (animationKeys[i].pointType == PointType.ShortCut)
+                {
+                    UIController.instance.LogGameMessage("Shortcut!");
+                    SoundManager.instance.PlayEffect(Effects.Successs);
+                }
+
+                boostInPath = false;
+            }
+
+            while (ramainingPerKey > 0)
+            {
+                players[currentPlayer].transform.position += deltaSpace;
+                ramainingPerKey -= deltaTime;
+                yield return new WaitForSecondsRealtime(deltaTime);
+            }
+
+            players[currentPlayer].transform.position = animationKeys[i].gameObject.transform.position;
+        }
+
+        players[currentPlayer].SetPoint(animationKeys[animationKeys.Count - 1]);
+
+
+        if (animationKeys[animationKeys.Count - 1].point == endGamePoint)
+            UIController.instance.EndGameCondition(players[currentPlayer].GetPlayerInfo());
+        else
+            SetNextPlayer();
+
+        UIController.instance.SetRollAbility(true);
+    }
+
+
+
+    //Events Handlers
     void OnRollPressed()
     {
         SoundManager.instance.PlayEffect(Effects.Roll);
@@ -229,6 +345,28 @@ public class GameManager : MonoBehaviour
 
         SetNextPlayer();
     }
+    void SetGreenArrowsState()
+    {
+        for (int y = 1; y <= 8; y++)
+        {
+            for (int x = 1; x <= 8; x++)
+            {
+                if (new Vector2(x, y) != endGamePoint)
+                {
+                    GridPoint point = map[x - 1, y - 1];
+
+                    if (point.pointType == PointType.Default)
+                    {
+                        foreach (MeshRenderer mesh in point.myArrow.GetComponentsInChildren<MeshRenderer>())
+                        {
+                            mesh.enabled = UIController.instance.isGreenArrowsOn;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
 
     //Algorithms
@@ -263,7 +401,6 @@ public class GameManager : MonoBehaviour
         if (current == endGamePoint)
             return endGamePoint; //End Game Condition
 
-
         //odd y moves right by default, unless it's the last one, then it moves up.
         //but even y moves left by default, ---
         bool even = (current.y % 2 == 0);
@@ -297,99 +434,19 @@ public class GameManager : MonoBehaviour
     {
         return map[(int)(point.x - 1), (int)(point.y - 1)];
     }
-    IEnumerator Rolling()
+    
+    int GetDistanceToEndLine(Vector2 start)
     {
-        float time = rollingTime;
+        int totalMoves = 0;
 
+        Vector2 current = start;
 
-        while (time > 0)
+        while(current != endGamePoint)
         {
-            currentRollNumber = Random.Range(1,7);
-
-            UIController.instance.UpdateRoll(currentRollNumber.ToString());
-            UIController.instance.UpdateDie(currentRollNumber);
-
-            time -= 0.1f;
-            yield return new WaitForSeconds(.1f);
+            current = ComputeDefaultNextStep(current);
+            totalMoves++;
         }
 
-
-        //6 6 in a row
-        if (players[currentPlayer].GetLastRoll() == 6 && currentRollNumber == 6)
-        {
-            UIController.instance.SetSkipAbility(false);
-            UIController.instance.SetPlayAbility(false);
-
-            SetNextPlayer();
-        }
-        else
-        {
-            if (players[currentPlayer].CanSkip())
-            {
-                UIController.instance.SetSkipAbility(true);
-                UIController.instance.SetPlayAbility(true);
-            }
-            else
-            {
-                if(players[currentPlayer].GetReserveAmount() > 0)
-                {
-                    UIController.instance.UpdateRoll(currentRollNumber.ToString() + " + " + players[currentPlayer].GetReserveAmount().ToString());
-
-                    currentRollNumber += players[currentPlayer].GetReserveAmount();
-                    players[currentPlayer].SetReserve(0);
-
-                    UIController.instance.SetPlayAbility(true);
-                }
-                else
-                {
-                    UIController.instance.SetPlayAbility(true);
-                }
-            }
-        }
-
-    }
-    IEnumerator ExcuteMove()
-    {
-        var animationKeys = ComputePlayerPath(players[currentPlayer].GetPoint().point, currentRollNumber);
-
-        float animationTimePerKey = 1f / playerSpeed;
-
-        for (int i = 0; i < animationKeys.Count; i++)
-        {
-            float ramainingPerKey = animationTimePerKey;
-            float numberOfIncrements = 25f;
-
-            float deltaTime = animationTimePerKey / numberOfIncrements;
-            Vector3 deltaSpace = (animationKeys[i].gameObject.transform.position - players[currentPlayer].transform.position) / numberOfIncrements;
-
-            if ((i == animationKeys.Count - 2) && boostInPath)
-            {
-                if (animationKeys[i].pointType == PointType.Pitfall)
-                    SoundManager.instance.PlayEffect(Effects.Fail);
-                else if (animationKeys[i].pointType == PointType.ShortCut)
-                    SoundManager.instance.PlayEffect(Effects.Successs);
-                
-                boostInPath = false;
-            }
-
-            while (ramainingPerKey > 0)
-            {
-                players[currentPlayer].transform.position += deltaSpace;
-                ramainingPerKey -= deltaTime;
-                yield return new WaitForSecondsRealtime(deltaTime);
-            }
-
-            players[currentPlayer].transform.position = animationKeys[i].gameObject.transform.position;
-        }
-
-        players[currentPlayer].SetPoint(animationKeys[animationKeys.Count - 1]);
-
-
-        if (animationKeys[animationKeys.Count - 1].point == endGamePoint)
-            UIController.instance.EndGameCondition(players[currentPlayer].GetPlayerInfo());
-        else
-            SetNextPlayer();
-
-        UIController.instance.SetRollAbility(true);
+        return totalMoves;
     }
 }

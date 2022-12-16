@@ -2115,7 +2115,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   globalMusic: {fileID: 8300000, guid: 7251b4d7850fc544c8880d2ced3ca772, type: 3}
-  globalMusicVolume: 0.45
+  globalMusicVolume: 0.3
   effects:
   - name: 0
     clip: {fileID: 8300000, guid: 96ecdadc949b2224b8761aa7067212d5, type: 3}

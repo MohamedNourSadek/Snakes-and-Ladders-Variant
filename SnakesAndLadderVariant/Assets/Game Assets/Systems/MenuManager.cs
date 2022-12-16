@@ -12,12 +12,13 @@ public class MenuManager : MonoBehaviour
     [SerializeField] RectTransform animatedBackground;
     [SerializeField] float circleAnimationRadius;
     [SerializeField] float circleAnimationSpeed;
-    [SerializeField] TMPro.TMP_InputField playerName;
-    [SerializeField] TMPro.TMP_Dropdown playerColor;
+    [SerializeField] TMP_InputField playerName;
+    [SerializeField] TMP_Dropdown playerColor;
     [SerializeField] TextMeshProUGUI playerText;
     [SerializeField] TextMeshProUGUI errorText;
     [SerializeField] Button add;
     [SerializeField] Button start;
+
 
     private void Awake()
     {
@@ -28,9 +29,11 @@ public class MenuManager : MonoBehaviour
         start.onClick.AddListener(OnStartPress);
         add.onClick.AddListener(OnAddPress);
 
-        StartCoroutine(animateBackground());
+        StartCoroutine(AnimateBackground());
     }
 
+
+    //Events handlers
     public void OnAddPress()
     {
         SoundManager.instance.PlayEffect(Effects.ButtonPress);
@@ -76,6 +79,8 @@ public class MenuManager : MonoBehaviour
         }
     }
 
+
+    //Algorithms
     void LogMessage(string message, ErrorType type)
     {
         errorText.text = message;
@@ -104,7 +109,7 @@ public class MenuManager : MonoBehaviour
 
         return color;
     }
-    IEnumerator animateBackground()
+    IEnumerator AnimateBackground()
     {
         Vector3 position = Vector3.zero;
 
