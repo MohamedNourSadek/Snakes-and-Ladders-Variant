@@ -28,7 +28,7 @@ public class GameManager : MonoBehaviour
     List<Player> players= new List<Player>();
     GridPoint[,] map = new GridPoint[8, 8];
     int currentPlayer = 0;
-    int currentRollNumber;
+    public int currentRollNumber;
 
 
     //Initialization functions
@@ -36,6 +36,8 @@ public class GameManager : MonoBehaviour
     {
         Application.targetFrameRate = 60;
         UIController.instance.AddOnRollEvent(OnRollPressed);
+        UIController.instance.AddOnPlayEvent(OnPlayPress);
+        UIController.instance.AddOnSkipEvent(OnSkipPress);
         GameData gameData = (GlobalData.gameData.PlayersInfo.Count >= 2) ? GlobalData.gameData : CreateTestGameData();
 
         CreateGridMap();
@@ -45,7 +47,7 @@ public class GameManager : MonoBehaviour
 
         //start game settings
         currentPlayer = 0;
-        UIController.instance.CanRoll(true);
+        UIController.instance.SetRollAbility(true);
     }
     GameData CreateTestGameData()
     {
@@ -72,18 +74,29 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        //Shortcuts
-        map[5, 0].pointType = PointType.ShortCut;
-        map[5, 0].pointDestination = new Vector2(6, 2);
-        map[6, 0].pointType = PointType.ShortCut;
-        map[6, 0].pointDestination = new Vector2(7, 2);
-
+        //Pitfalls
+        //I will generate one in the upper part that is big, and one small in the middle half.
+        GenerateRandomBoost(new Vector2(5,8), PointType.Pitfall);
+        GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
 
         //Pitfalls
-        map[3, 1].pointType = PointType.Pitfall;
-        map[3, 1].pointDestination = new Vector2(4, 1);
-        map[4, 1].pointType = PointType.Pitfall;
-        map[4, 1].pointDestination = new Vector2(5, 1);
+        //I will generate one in the upper part that is big, and one small in the middle half.
+        GenerateRandomBoost(new Vector2(4, 7), PointType.ShortCut);
+        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
+    }
+    void GenerateRandomBoost(Vector2 Yrange, PointType pointType)
+    {
+        int yPoint = (int)(Random.Range(Yrange.x - 1, Yrange.y));
+        int xPoint = Random.Range(0, 8);
+        int endPoint = 0;
+
+        if (pointType == PointType.ShortCut)
+            endPoint = Random.Range(yPoint + 1, 8);
+        else
+            endPoint = Random.Range(0, yPoint);
+
+        map[xPoint, yPoint].pointType = pointType;
+        map[xPoint, yPoint].pointDestination = new Vector2(xPoint + 1, endPoint + 1);
     }
     void SpawnPlayers(List<PlayerInfo> playersInfo)
     {
@@ -91,8 +104,7 @@ public class GameManager : MonoBehaviour
         {
             Player player = Instantiate(playerPrefab, this.transform.position, playerPrefab.transform.rotation).GetComponent<Player>();
             
-            player.SetPlayerInfo(playerInfo);
-            player.SetPoint(map[0,0]);
+            player.Initialize(playerInfo, map[0, 0]);
             players.Add(player);
         }
     }
@@ -127,9 +139,12 @@ public class GameManager : MonoBehaviour
     }
 
 
+
     //Game Loop
     void SetNextPlayer()
     {
+        players[currentPlayer].SetLastRoll(currentRollNumber);
+
         if (currentPlayer >= (players.Count - 1))
             currentPlayer = 0;
         else
@@ -140,12 +155,33 @@ public class GameManager : MonoBehaviour
     void UpdatePlayerUI()
     {
         PlayerInfo playerInfo = players[currentPlayer].GetPlayerInfo();
+        
         UIController.instance.UpdatePlayerName(playerInfo.playerName, playerInfo.playerColor);
+        UIController.instance.SetPlayAbility(false);
+        UIController.instance.SetSkipAbility(false);
+        UIController.instance.SetRollAbility(true);
     }
     void OnRollPressed()
     {
-        UIController.instance.CanRoll(false);
+        UIController.instance.SetRollAbility(false);
         StartCoroutine(Rolling());
+    }
+    void OnPlayPress()
+    {
+        UIController.instance.SetSkipAbility(false);
+        UIController.instance.SetPlayAbility(false);
+
+        StartCoroutine(ExcuteMove());
+    }
+    void OnSkipPress()
+    {
+        UIController.instance.SetSkipAbility(false);
+        UIController.instance.SetPlayAbility(false);
+
+        players[currentPlayer].UseSkip();
+        players[currentPlayer].IncreaseReserve(currentRollNumber);
+
+        SetNextPlayer();
     }
 
 
@@ -220,16 +256,49 @@ public class GameManager : MonoBehaviour
 
         while(time > 0)
         {
-            currentRollNumber = UnityEngine.Random.Range(1, 7);
+            currentRollNumber = Random.Range(1,7);
 
             UIController.instance.UpdateRoll(currentRollNumber.ToString());
-
             time -= 0.1f;
             yield return new WaitForSeconds(.1f);
         }
 
-        StartCoroutine(ExcuteMove());
+
+        //6 6 in a row
+        if (players[currentPlayer].GetLastRoll() == 6 && currentRollNumber == 6)
+        {
+            UIController.instance.SetSkipAbility(false);
+            UIController.instance.SetPlayAbility(false);
+
+            SetNextPlayer();
+        }
+        else
+        {
+            if (players[currentPlayer].CanSkip())
+            {
+                UIController.instance.SetSkipAbility(true);
+                UIController.instance.SetPlayAbility(true);
+            }
+            else
+            {
+                if(players[currentPlayer].GetReserveAmount() > 0)
+                {
+                    UIController.instance.UpdateRoll(currentRollNumber.ToString() + " + " + players[currentPlayer].GetReserveAmount().ToString());
+
+                    currentRollNumber += players[currentPlayer].GetReserveAmount();
+                    players[currentPlayer].SetReserve(0);
+
+                    UIController.instance.SetPlayAbility(true);
+                }
+                else
+                {
+                    UIController.instance.SetPlayAbility(true);
+                }
+            }
+        }
+
     }
+
     IEnumerator ExcuteMove()
     {
         var animationKeys = ComputePlayerPath(players[currentPlayer].GetPoint().point, currentRollNumber);
@@ -262,6 +331,6 @@ public class GameManager : MonoBehaviour
         else
             SetNextPlayer();
 
-        UIController.instance.CanRoll(true);
+        UIController.instance.SetRollAbility(true);
     }
 }

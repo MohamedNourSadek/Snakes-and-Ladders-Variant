@@ -6,15 +6,22 @@ public class Player : MonoBehaviour
 {
     PlayerInfo playerInfo;
     GridPoint currentPosition;
+    
+    bool canSkip;
+    public int lastRoll;
+    int reserveAmount;
 
     public void Initialize(PlayerInfo playerInfo, GridPoint startPoint)
     {
-        this.playerInfo = playerInfo;
+        SetPlayerInfo(playerInfo);
         SetPoint(startPoint);
+        canSkip = true;
+        reserveAmount= 0;
+        lastRoll= 0;
     }
 
 
-    //Set and Get
+    //Just Setter and Getters
     public void SetPlayerInfo(PlayerInfo playerInfo)
     {
         this.playerInfo = playerInfo;
@@ -25,6 +32,36 @@ public class Player : MonoBehaviour
         return this.playerInfo; 
     }
 
+    public int GetReserveAmount()
+    {
+        return reserveAmount;
+    }
+    public void IncreaseReserve(int value)
+    {
+        reserveAmount+= value;
+    }
+    public void SetReserve(int value)
+    {
+        reserveAmount = value;
+    }
+
+    public int GetLastRoll()
+    {
+        return lastRoll;
+    }
+    public void SetLastRoll(int value)
+    {
+        lastRoll = value;
+    }
+
+    public bool CanSkip()
+    {
+        return canSkip;
+    }
+    public void UseSkip()
+    {
+        canSkip = false;
+    }
 
     public void SetPoint(GridPoint destination)
     {

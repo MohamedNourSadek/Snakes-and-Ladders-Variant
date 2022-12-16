@@ -16,6 +16,8 @@ public class UIController : MonoBehaviour
     [SerializeField] TextMeshProUGUI rollText;
     [SerializeField] TextMeshProUGUI winnerName;
     [SerializeField] Button rollButton;
+    [SerializeField] Button playButton;
+    [SerializeField] Button skipButton;
     [SerializeField] Button restartGameButton;
     [SerializeField] Button backMenuButton;
     
@@ -40,6 +42,14 @@ public class UIController : MonoBehaviour
     {
         rollButton.onClick.AddListener(action);
     }
+    public void AddOnPlayEvent(UnityAction action)
+    {
+        playButton.onClick.AddListener(action);
+    }
+    public void AddOnSkipEvent(UnityAction action)
+    {
+        skipButton.onClick.AddListener(action);
+    }
     public void UpdatePlayerName(string name, Color playerColor)
     {
         playerName.text = name;    
@@ -49,9 +59,17 @@ public class UIController : MonoBehaviour
     {
         rollText.text = rollNumber;
     }
-    public void CanRoll(bool state)
+    public void SetRollAbility(bool state)
     {
         rollButton.interactable = state;
+    }
+    public void SetPlayAbility(bool state)
+    {
+        playButton.interactable = state;
+    }
+    public void SetSkipAbility(bool state)
+    {
+        skipButton.interactable = state;
     }
 
 
