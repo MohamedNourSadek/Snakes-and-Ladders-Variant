@@ -19,15 +19,26 @@ public class UIController : MonoBehaviour
     [SerializeField] Button playButton;
     [SerializeField] Button skipButton;
     [SerializeField] Button restartGameButton;
+    [SerializeField] Button restartGameMiniButton;
     [SerializeField] Button backMenuButton;
-    
+    [SerializeField] Button backMenuMiniButton;
+    [SerializeField] Button greenArrowsButton;
+
     public static UIController instance;
+
+    public bool isGreenArrowsOn;
 
     private void Awake()
     {
         instance = this;
+
         restartGameButton.onClick.AddListener(OnRestartPress);
+        restartGameMiniButton.onClick.AddListener(OnRestartPress);
+
         backMenuButton.onClick.AddListener(OnBackMenuPress);
+        backMenuMiniButton.onClick.AddListener(OnBackMenuPress);
+
+        greenArrowsButton.onClick.AddListener(OnGreenActionPress);
     }
 
     public void EndGameCondition(PlayerInfo winnerName)
@@ -49,6 +60,10 @@ public class UIController : MonoBehaviour
     public void AddOnSkipEvent(UnityAction action)
     {
         skipButton.onClick.AddListener(action);
+    }
+    public void AddOnGreenEvent(UnityAction action)
+    {
+        greenArrowsButton.onClick.AddListener(action);
     }
     public void UpdatePlayerName(string name, Color playerColor)
     {
@@ -75,12 +90,20 @@ public class UIController : MonoBehaviour
 
 
     //private events
+    void OnGreenActionPress()
+    {
+        SoundManager.instance.PlayEffect(Effects.ButtonPress);
+        isGreenArrowsOn = !isGreenArrowsOn;
+        greenArrowsButton.GetComponentInChildren<Image>().color = isGreenArrowsOn ? Color.green : Color.black;
+    }
     void OnRestartPress()
     {
+        SoundManager.instance.PlayEffect(Effects.ButtonPress);
         SceneManager.LoadScene(1);
     }
     void OnBackMenuPress()
     {
+        SoundManager.instance.PlayEffect(Effects.ButtonPress);
         SceneManager.LoadScene(0);
     }
 }

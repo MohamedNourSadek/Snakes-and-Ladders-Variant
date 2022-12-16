@@ -4,11 +4,12 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    [SerializeField] GameObject highlight;
     PlayerInfo playerInfo;
     GridPoint currentPosition;
     
     bool canSkip;
-    public int lastRoll;
+    int lastRoll;
     int reserveAmount;
 
     public void Initialize(PlayerInfo playerInfo, GridPoint startPoint)
@@ -19,6 +20,11 @@ public class Player : MonoBehaviour
         reserveAmount= 0;
         lastRoll= 0;
     }
+    public void SetHighlight(bool state)
+    {
+        highlight.SetActive(state); 
+    }
+
 
 
     //Just Setter and Getters

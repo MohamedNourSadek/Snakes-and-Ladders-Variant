@@ -4,11 +4,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
+using UnityEditor.VersionControl;
 
 enum ErrorType { error, warning};
 
 public class MenuManager : MonoBehaviour
 {
+    [SerializeField] RectTransform animatedBackground;
+    [SerializeField] float circleAnimationRadius;
+    [SerializeField] float circleAnimationSpeed;
     [SerializeField] TMPro.TMP_InputField playerName;
     [SerializeField] TMPro.TMP_Dropdown playerColor;
     [SerializeField] TextMeshProUGUI playerText;
@@ -18,14 +22,20 @@ public class MenuManager : MonoBehaviour
 
     private void Awake()
     {
+        GlobalData.FrameRate = 60;
+        Application.targetFrameRate = GlobalData.FrameRate;
         GlobalData.gameData = new GameData();
 
         start.onClick.AddListener(OnStartPress);
         add.onClick.AddListener(OnAddPress);
+
+        StartCoroutine(animateBackground());
     }
 
     public void OnAddPress()
     {
+        SoundManager.instance.PlayEffect(Effects.ButtonPress);
+
         if(playerName.text.Length > 4)
         {
             PlayerInfo player = new PlayerInfo(playerName.text, GetColor());
@@ -37,7 +47,7 @@ public class MenuManager : MonoBehaviour
 
 
             playerText.text = "Player " + (GlobalData.gameData.PlayersInfo.Count + 1).ToString();
-            LogMessage("", ErrorType.error);
+            ClearLog();
 
 
             if (GlobalData.gameData.PlayersInfo.Count > 4)
@@ -54,9 +64,11 @@ public class MenuManager : MonoBehaviour
     }
     public void OnStartPress()
     {
-        if(GlobalData.gameData.PlayersInfo.Count >= 2)
+        SoundManager.instance.PlayEffect(Effects.ButtonPress);
+
+        if (GlobalData.gameData.PlayersInfo.Count >= 2)
         {
-            LogMessage("",ErrorType.warning);
+            ClearLog();
             SceneManager.LoadScene(1);
         }
         else
@@ -69,6 +81,14 @@ public class MenuManager : MonoBehaviour
     {
         errorText.text = message;
         errorText.color = (type == ErrorType.error? Color.red : Color.blue);
+
+        if (type == ErrorType.error)
+            SoundManager.instance.PlayEffect(Effects.Error);
+
+    }
+    void ClearLog()
+    {
+        errorText.text = "";
     }
     Color GetColor()
     {
@@ -84,5 +104,20 @@ public class MenuManager : MonoBehaviour
             color = Color.black;
 
         return color;
+    }
+    IEnumerator animateBackground()
+    {
+        Vector3 position = Vector3.zero;
+
+        while(true)
+        {
+            position.x = (Screen.width/2f) + (circleAnimationRadius * Mathf.Sin(Time.timeSinceLevelLoad * circleAnimationSpeed));
+            position.y = (Screen.height/2f) + circleAnimationRadius * Mathf.Cos(Time.timeSinceLevelLoad * circleAnimationSpeed);
+            
+            animatedBackground.position = position;
+
+
+            yield return new WaitForSeconds(Time.fixedDeltaTime);
+        }
     }
 }

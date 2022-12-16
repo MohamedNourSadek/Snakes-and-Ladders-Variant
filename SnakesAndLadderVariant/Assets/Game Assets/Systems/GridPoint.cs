@@ -10,6 +10,7 @@ public class GridPoint : MonoBehaviour
     [SerializeField] public Vector2 point;
     [SerializeField] public PointType pointType;
     [SerializeField] public Vector2 pointDestination;
+    [SerializeField] public Arrow myArrow;
 
     public void Initialize(Vector2 point, PointType pointType, Vector2 pointDestination)
     {

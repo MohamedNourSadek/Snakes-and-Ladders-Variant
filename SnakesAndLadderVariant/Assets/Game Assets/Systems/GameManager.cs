@@ -28,16 +28,18 @@ public class GameManager : MonoBehaviour
     List<Player> players= new List<Player>();
     GridPoint[,] map = new GridPoint[8, 8];
     int currentPlayer = 0;
-    public int currentRollNumber;
-
+    int currentRollNumber;
+    bool boostInPath;
 
     //Initialization functions
     void Awake()
     {
-        Application.targetFrameRate = 60;
+        Application.targetFrameRate = GlobalData.FrameRate;
         UIController.instance.AddOnRollEvent(OnRollPressed);
         UIController.instance.AddOnPlayEvent(OnPlayPress);
         UIController.instance.AddOnSkipEvent(OnSkipPress);
+        UIController.instance.AddOnGreenEvent(SetGreenArrowsState);
+
         GameData gameData = (GlobalData.gameData.PlayersInfo.Count >= 2) ? GlobalData.gameData : CreateTestGameData();
 
         CreateGridMap();
@@ -78,10 +80,19 @@ public class GameManager : MonoBehaviour
         //I will generate one in the upper part that is big, and one small in the middle half.
         GenerateRandomBoost(new Vector2(5,8), PointType.Pitfall);
         GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
+        GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
+        GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
+        GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
+        GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
 
         //Pitfalls
         //I will generate one in the upper part that is big, and one small in the middle half.
         GenerateRandomBoost(new Vector2(4, 7), PointType.ShortCut);
+        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
+        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
+        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
+        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
+        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
         GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
     }
     void GenerateRandomBoost(Vector2 Yrange, PointType pointType)
@@ -120,6 +131,7 @@ public class GameManager : MonoBehaviour
                     GridPoint point = map[x - 1, y - 1];
                     Arrow arrow = Instantiate(arrowPrefab, arrowParent).GetComponent<Arrow>();
                     arrow.SetArrowTransform(point, PointToGridPoint(point.pointDestination));
+                    point.myArrow = arrow;
 
                     UnityEngine.Color color = (point.pointType == PointType.Pitfall) ? pitfallColor : shortcutColor; 
 
@@ -132,12 +144,33 @@ public class GameManager : MonoBehaviour
                             mesh.material.color = color;
                         }
                     }
+                }
+            }
+        }
 
+        SetGreenArrowsState();
+    }
+    void SetGreenArrowsState()
+    {
+        for (int y = 1; y <= 8; y++)
+        {
+            for (int x = 1; x <= 8; x++)
+            {
+                if (new Vector2(x, y) != endGamePoint)
+                {
+                    GridPoint point = map[x - 1, y - 1];
+
+                    if (point.pointType == PointType.Default)
+                    {
+                        foreach (MeshRenderer mesh in point.myArrow.GetComponentsInChildren<MeshRenderer>())
+                        {
+                            mesh.enabled = UIController.instance.isGreenArrowsOn;
+                        }
+                    }
                 }
             }
         }
     }
-
 
 
     //Game Loop
@@ -145,17 +178,21 @@ public class GameManager : MonoBehaviour
     {
         players[currentPlayer].SetLastRoll(currentRollNumber);
 
+        players[currentPlayer].SetHighlight(false);
+
         if (currentPlayer >= (players.Count - 1))
             currentPlayer = 0;
         else
             currentPlayer ++;
+
 
         UpdatePlayerUI();
     }
     void UpdatePlayerUI()
     {
         PlayerInfo playerInfo = players[currentPlayer].GetPlayerInfo();
-        
+
+        players[currentPlayer].SetHighlight(true);
         UIController.instance.UpdatePlayerName(playerInfo.playerName, playerInfo.playerColor);
         UIController.instance.SetPlayAbility(false);
         UIController.instance.SetSkipAbility(false);
@@ -163,11 +200,13 @@ public class GameManager : MonoBehaviour
     }
     void OnRollPressed()
     {
+        SoundManager.instance.PlayEffect(Effects.Roll);
         UIController.instance.SetRollAbility(false);
         StartCoroutine(Rolling());
     }
     void OnPlayPress()
     {
+        SoundManager.instance.PlayEffect(Effects.ButtonPress);
         UIController.instance.SetSkipAbility(false);
         UIController.instance.SetPlayAbility(false);
 
@@ -175,6 +214,7 @@ public class GameManager : MonoBehaviour
     }
     void OnSkipPress()
     {
+        SoundManager.instance.PlayEffect(Effects.ButtonPress);
         UIController.instance.SetSkipAbility(false);
         UIController.instance.SetPlayAbility(false);
 
@@ -192,7 +232,7 @@ public class GameManager : MonoBehaviour
         Vector2 nextMove = current;
         int moves = dice;
 
-        while(moves>0)
+        while (moves>0)
         {
             nextMove = ComputeDefaultNextStep(nextMove);
 
@@ -205,6 +245,7 @@ public class GameManager : MonoBehaviour
         {
             Vector2 point = animationKeys[animationKeys.Count - 1].pointDestination;
             animationKeys.Add(PointToGridPoint(point));
+            boostInPath = true;
         }
 
         return animationKeys;
@@ -254,7 +295,8 @@ public class GameManager : MonoBehaviour
     {
         float time = rollingTime;
 
-        while(time > 0)
+
+        while (time > 0)
         {
             currentRollNumber = Random.Range(1,7);
 
@@ -298,7 +340,6 @@ public class GameManager : MonoBehaviour
         }
 
     }
-
     IEnumerator ExcuteMove()
     {
         var animationKeys = ComputePlayerPath(players[currentPlayer].GetPoint().point, currentRollNumber);
@@ -312,6 +353,16 @@ public class GameManager : MonoBehaviour
 
             float deltaTime = animationTimePerKey / numberOfIncrements;
             Vector3 deltaSpace = (animationKeys[i].gameObject.transform.position - players[currentPlayer].transform.position) / numberOfIncrements;
+
+            if ((i == animationKeys.Count - 2) && boostInPath)
+            {
+                if (animationKeys[i].pointType == PointType.Pitfall)
+                    SoundManager.instance.PlayEffect(Effects.Fail);
+                else if (animationKeys[i].pointType == PointType.ShortCut)
+                    SoundManager.instance.PlayEffect(Effects.Successs);
+                
+                boostInPath = false;
+            }
 
             while (ramainingPerKey > 0)
             {

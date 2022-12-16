@@ -5,4 +5,5 @@ using UnityEngine;
 public class GlobalData : MonoBehaviour
 {
     public static GameData gameData = new GameData();
+    public static int FrameRate;
 }
