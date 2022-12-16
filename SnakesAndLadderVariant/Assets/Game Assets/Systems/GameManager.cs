@@ -31,6 +31,7 @@ public class GameManager : MonoBehaviour
     int currentRollNumber;
     bool boostInPath;
 
+
     //Initialization functions
     void Awake()
     {
@@ -78,27 +79,18 @@ public class GameManager : MonoBehaviour
 
         //Pitfalls
         //I will generate one in the upper part that is big, and one small in the middle half.
-        GenerateRandomBoost(new Vector2(5,8), PointType.Pitfall);
-        GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
-        GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
-        GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
-        GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
-        GenerateRandomBoost(new Vector2(2,5), PointType.Pitfall);
+        GenerateRandomBoost(new Vector2(5,8), new Vector2(1, 2), PointType.Pitfall);
+        GenerateRandomBoost(new Vector2(2,5), new Vector2(3, 4), PointType.Pitfall);
 
         //Pitfalls
         //I will generate one in the upper part that is big, and one small in the middle half.
-        GenerateRandomBoost(new Vector2(4, 7), PointType.ShortCut);
-        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
-        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
-        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
-        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
-        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
-        GenerateRandomBoost(new Vector2(1, 4), PointType.ShortCut);
+        GenerateRandomBoost(new Vector2(4, 7), new Vector2(5, 6), PointType.ShortCut);
+        GenerateRandomBoost(new Vector2(1, 4), new Vector2(7, 8), PointType.ShortCut);
     }
-    void GenerateRandomBoost(Vector2 Yrange, PointType pointType)
+    void GenerateRandomBoost(Vector2 Yrange, Vector2 Xrange, PointType pointType)
     {
         int yPoint = (int)(Random.Range(Yrange.x - 1, Yrange.y));
-        int xPoint = Random.Range(0, 8);
+        int xPoint = (int)(Random.Range(Xrange.x - 1, Xrange.y));
         int endPoint = 0;
 
         if (pointType == PointType.ShortCut)
@@ -106,6 +98,17 @@ public class GameManager : MonoBehaviour
         else
             endPoint = Random.Range(0, yPoint);
 
+        //reject point if its already a special move point
+        bool isStartVaild = PointToGridPoint(new Vector2(xPoint + 1, yPoint +1)).pointType == PointType.Default;
+        bool isEndValid = PointToGridPoint(new Vector2(xPoint +1, endPoint + 1)).pointType == PointType.Default;
+       
+        if (!isStartVaild || !isEndValid)
+        {
+            GenerateRandomBoost(Yrange, Xrange, pointType);
+            return;
+        }
+
+        //contine if it's valid
         map[xPoint, yPoint].pointType = pointType;
         map[xPoint, yPoint].pointDestination = new Vector2(xPoint + 1, endPoint + 1);
     }
@@ -198,6 +201,9 @@ public class GameManager : MonoBehaviour
         UIController.instance.SetSkipAbility(false);
         UIController.instance.SetRollAbility(true);
     }
+
+
+    //Events
     void OnRollPressed()
     {
         SoundManager.instance.PlayEffect(Effects.Roll);
@@ -301,6 +307,8 @@ public class GameManager : MonoBehaviour
             currentRollNumber = Random.Range(1,7);
 
             UIController.instance.UpdateRoll(currentRollNumber.ToString());
+            UIController.instance.UpdateDie(currentRollNumber);
+
             time -= 0.1f;
             yield return new WaitForSeconds(.1f);
         }

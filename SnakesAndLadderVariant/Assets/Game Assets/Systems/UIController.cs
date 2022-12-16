@@ -14,6 +14,7 @@ public class UIController : MonoBehaviour
     [Header("References")]
     [SerializeField] TextMeshProUGUI playerName;
     [SerializeField] TextMeshProUGUI rollText;
+    [SerializeField] TextMeshProUGUI dieRollText;
     [SerializeField] TextMeshProUGUI winnerName;
     [SerializeField] Button rollButton;
     [SerializeField] Button playButton;
@@ -73,6 +74,21 @@ public class UIController : MonoBehaviour
     public void UpdateRoll(string rollNumber)
     {
         rollText.text = rollNumber;
+    }
+    public void UpdateDie(int dieNumber)
+    {
+        if (dieNumber == 1)
+            dieRollText.text = ".";
+        else if (dieNumber == 2)
+            dieRollText.text = "..";
+        else if (dieNumber == 3)
+            dieRollText.text = "...";
+        else if (dieNumber == 4)
+            dieRollText.text = "..\n..";
+        else if (dieNumber == 5)
+            dieRollText.text = ".....";
+        else if (dieNumber == 6)
+            dieRollText.text = "......";
     }
     public void SetRollAbility(bool state)
     {
